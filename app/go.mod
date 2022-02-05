@@ -3,6 +3,7 @@ module github.com/skymazer/user_service
 go 1.17
 
 require (
+	github.com/lib/pq v1.10.4
 	go.uber.org/fx v1.16.0
 	go.uber.org/zap v1.20.0
 	google.golang.org/grpc v1.44.0

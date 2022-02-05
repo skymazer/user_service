@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y zip && \
 
 ENV PATH=$PATH:$GOPATH/bin:/opt/protoc/bin
 
-# Copy the grpc proto file and generate the go module
 RUN mkdir  /app
 COPY app /app
 RUN cd /app/proto && \

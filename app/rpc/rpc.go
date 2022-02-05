@@ -2,73 +2,89 @@ package rpc
 
 import (
 	"context"
-	"errors"
+	"github.com/skymazer/user_service/db"
+	m "github.com/skymazer/user_service/models"
 	pb "github.com/skymazer/user_service/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"math/rand"
 )
 
 type Handler = pb.UsersServer
 
-type user struct {
-	Id   uint64
-	Name string
-	Mail string
-}
-
 type handler struct {
 	pb.UnimplementedUsersServer
-
-	users map[uint64]user
+	database *db.Database
 }
 
-func New() (Handler, error) {
+func New(database *db.Database) (Handler, error) {
 	var h handler
-	h.users = make(map[uint64]user)
+	h.database = database
 	return &h, nil
 }
 
 func (h *handler) AddUser(ctx context.Context, cur *pb.CreateUserReq) (*emptypb.Empty, error) {
-	id := rand.Uint64()
+	res := &emptypb.Empty{}
 	u := unmarshallUser(cur)
-	u.Id = id
-	h.users[id] = u
+
+	if len(u.Name) == 0 {
+		return res, status.Error(codes.InvalidArgument, "Mail must not be null")
+	}
+	if len(u.Mail) == 0 {
+		return res, status.Error(codes.InvalidArgument, "Name must not be null")
+	}
+
+	if err := h.database.AddUser(&u); err != nil {
+		return res, status.Errorf(codes.Internal,
+			"Failed to create user: %v", err)
+	}
+
 	return &emptypb.Empty{}, nil
 }
 
 func (h *handler) RemoveUser(ctx context.Context, u *pb.RemoveUserReq) (*emptypb.Empty, error) {
 
-	if _, ok := h.users[u.Id]; !ok {
-		return &emptypb.Empty{}, errors.New("User not found")
+	if err := h.database.DeleteUser(m.IdType(u.Id)); err != nil {
+		switch err {
+		case db.ErrNoMatch:
+			return &emptypb.Empty{}, status.Error(codes.NotFound,
+				"User doesn't exist")
+		default:
+			return &emptypb.Empty{}, status.Errorf(codes.Internal,
+				"Failed to remove user: %v", err)
+		}
 	}
-
-	delete(h.users, u.Id)
 
 	return &emptypb.Empty{}, nil
 }
 
 func (h *handler) ListUsers(context.Context, *emptypb.Empty) (*pb.ListUsersResp, error) {
 	var resp pb.ListUsersResp
-	resp.Users = make([]*pb.User, 0, len(h.users))
 
-	for _, u := range h.users {
-		resp.Users = append(resp.Users, marshallUser(&u))
+	stored, err := h.database.GetAllUsers()
+	if err != nil {
+		return &resp, status.Errorf(codes.Internal,
+			"Failed to fetch user: %v", err)
+	}
+
+	for _, u := range stored {
+		resp.Users = append(resp.Users, marshallUser(u))
 	}
 
 	return &resp, nil
 }
 
-func unmarshallUser(cur *pb.CreateUserReq) user {
-	return user{
+func unmarshallUser(cur *pb.CreateUserReq) m.User {
+	return m.User{
 		Id:   0,
 		Name: cur.Name,
 		Mail: cur.Mail,
 	}
 }
 
-func marshallUser(u *user) *pb.User {
+func marshallUser(u *m.User) *pb.User {
 	return &pb.User{
-		Id:   u.Id,
+		Id:   uint64(u.Id),
 		Name: u.Name,
 		Mail: u.Mail,
 	}
