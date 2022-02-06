@@ -3,7 +3,9 @@ module github.com/skymazer/user_service
 go 1.17
 
 require (
+	github.com/gomodule/redigo v1.8.8
 	github.com/lib/pq v1.10.4
+	github.com/pkg/errors v0.8.1
 	go.uber.org/fx v1.16.0
 	go.uber.org/zap v1.20.0
 	google.golang.org/grpc v1.44.0

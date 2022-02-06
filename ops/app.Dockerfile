@@ -17,6 +17,7 @@ ENV PATH=$PATH:$GOPATH/bin:/opt/protoc/bin
 
 RUN mkdir  /app
 COPY app /app
+COPY ./users.proto /app/proto/
 RUN cd /app/proto && \
     protoc --go-grpc_out=. --go_out=. users.proto
 

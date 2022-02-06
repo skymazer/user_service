@@ -5,12 +5,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type Logger struct {
+	zap.SugaredLogger
+}
+
 // ProvideLogger to fx
-func ProvideLogger() *zap.SugaredLogger {
+func ProvideLogger() *Logger {
 	logger, _ := zap.NewProduction()
 	slogger := logger.Sugar()
 
-	return slogger
+	return &Logger{*slogger}
 }
 
 // Module provided to fx

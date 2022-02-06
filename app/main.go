@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/skymazer/user_service/cache"
 	"github.com/skymazer/user_service/db"
 	"github.com/skymazer/user_service/loggerfx"
+	"github.com/skymazer/user_service/middleware"
 	pb "github.com/skymazer/user_service/proto"
 	rpcServer "github.com/skymazer/user_service/rpc"
+	"google.golang.org/grpc"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -21,6 +22,12 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to listen: %v", err)
 	}
+
+	redis, err := cache.New(logger)
+	if err != nil {
+		logger.Fatalf("failed to establish redis connection: %v", err)
+	}
+	defer redis.Conn.Close()
 
 	dbUser, dbPassword, dbName :=
 		os.Getenv("POSTGRES_USER"),
@@ -32,7 +39,9 @@ func main() {
 	}
 	defer database.Conn.Close()
 
-	var opts []grpc.ServerOption
+	opts := []grpc.ServerOption{
+		middleware.UserListCacheInterceptor(redis, logger),
+	}
 	grpcServer := grpc.NewServer(opts...)
 	rpcServer, err := rpcServer.New(&database)
 	if err != nil {
