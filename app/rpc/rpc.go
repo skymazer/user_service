@@ -2,24 +2,35 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/skymazer/user_service/db"
+	"github.com/skymazer/user_service/loggerfx"
 	m "github.com/skymazer/user_service/models"
 	pb "github.com/skymazer/user_service/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"time"
 )
 
 type Handler = pb.UsersServer
 
+type Storage interface {
+	AddUser(item *m.User) (m.IdType, error)
+	DeleteUser(userId m.IdType) error
+	GetAllUsers() ([]*m.User, error)
+}
+
 type handler struct {
 	pb.UnimplementedUsersServer
 	database *db.Database
+	log      *loggerfx.Logger
 }
 
-func New(database *db.Database) (Handler, error) {
+func New(database *db.Database, log *loggerfx.Logger) (Handler, error) {
 	var h handler
 	h.database = database
+	h.log = log
 	return &h, nil
 }
 
@@ -34,10 +45,18 @@ func (h *handler) AddUser(ctx context.Context, cur *pb.CreateUserReq) (*emptypb.
 		return res, status.Error(codes.InvalidArgument, "Name must not be null")
 	}
 
-	if err := h.database.AddUser(&u); err != nil {
+	id, err := h.database.AddUser(&u)
+	if err != nil {
 		return res, status.Errorf(codes.Internal,
 			"Failed to create user: %v", err)
 	}
+
+	logEntry, err := json.Marshal(struct {
+		Timestamp uint64 `json:"timestamp"`
+		UserId    uint64 `json:"userId"`
+		Name      string `json:"name"`
+	}{uint64(time.Now().Unix()), uint64(id), u.Name})
+	h.log.InfoS(logEntry)
 
 	return &emptypb.Empty{}, nil
 }

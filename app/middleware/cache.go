@@ -22,8 +22,8 @@ var ErrNotFound = errors.New("no matching record")
 const cachedService = "/users.Users/"
 const cachedMethod = cachedService + "ListUsers"
 
-func UserListCacheInterceptor(r Cacher, l *loggerfx.Logger) grpc.ServerOption {
-	return grpc.UnaryInterceptor(func(ctx context.Context,
+func UserListCacheInterceptor(r Cacher, l *loggerfx.Logger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (interface{}, error) {
@@ -65,5 +65,5 @@ func UserListCacheInterceptor(r Cacher, l *loggerfx.Logger) grpc.ServerOption {
 		}
 
 		return h, err
-	})
+	}
 }

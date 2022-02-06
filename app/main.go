@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/skymazer/user_service/broker"
 	"github.com/skymazer/user_service/cache"
 	"github.com/skymazer/user_service/db"
 	"github.com/skymazer/user_service/loggerfx"
@@ -16,12 +18,19 @@ import (
 )
 
 func main() {
-
-	logger := loggerfx.ProvideLogger()
+	logger := loggerfx.New()
 	lis, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		logger.Fatalf("failed to listen: %v", err)
 	}
+
+	kafka, err := broker.New(logger, "user-service-logs")
+	if err != nil {
+		logger.Fatalf("failed to establish redis connection: %v", err)
+	}
+	defer kafka.Conn.Close()
+
+	logger.SetStorager(kafka)
 
 	redis, err := cache.New(logger)
 	if err != nil {
@@ -40,10 +49,11 @@ func main() {
 	defer database.Conn.Close()
 
 	opts := []grpc.ServerOption{
-		middleware.UserListCacheInterceptor(redis, logger),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(middleware.UserListCacheInterceptor(redis, logger),
+			middleware.LoggerInterceptor(logger))),
 	}
 	grpcServer := grpc.NewServer(opts...)
-	rpcServer, err := rpcServer.New(&database)
+	rpcServer, err := rpcServer.New(&database, logger)
 	if err != nil {
 		logger.Fatalf("failed to start rcp server: %v", err)
 	}

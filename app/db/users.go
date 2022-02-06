@@ -4,14 +4,15 @@ import (
 	"github.com/skymazer/user_service/models"
 )
 
-func (db Database) AddUser(item *models.User) error {
-	query := `INSERT INTO users (name, mail) VALUES ($1, $2)`
-	_, err := db.Conn.Exec(query, item.Name, item.Mail)
+func (db Database) AddUser(item *models.User) (models.IdType, error) {
+	var id int
+	query := `INSERT INTO users (name, mail) VALUES ($1, $2) RETURNING id`
+	err := db.Conn.QueryRow(query, item.Name, item.Mail).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return models.IdType(id), nil
 }
 
 func (db Database) DeleteUser(userId models.IdType) error {
