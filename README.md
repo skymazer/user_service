@@ -11,8 +11,33 @@
 ```
 docker-compose up
 ```
+Дождаться появления строки
+```
+app_1         | {"level":"info","ts":1644227746.196521,"caller":"app/main.go:63","msg":"Service started"}
+```
 
-## Что стоило бы сделать, но еще не сделано
+## Использование
+Сервис принимает только gRPC запросы. 
+Протестировать можно с помощью Goland или e.g. [BloomRPC](https://github.com/bloomrpc/bloomrpc)
+```
+GRPC localhost:8081/users.Users/ListUsers
+###
+GRPC localhost:8081/users.Users/AddUser
+{
+  "name": "test user",
+  "mail": "test userasdgfddfgdsad"
+}
+###
+GRPC localhost:8081/users.Users/RemoveUser
+{
+  "id": "7"
+}
+```
+
+## Что стоило бы сделать, но пока не сделано
 
 - Тесты
-- Хранить данные на docker-volume
+- Пагинация или возвращать stream для метода `ListUsers`
+- Валидация аргументов в middlewaare
+- Утилитка, которая покажет, что все  работает
+- Поддержка gRPC-web

@@ -1,12 +1,12 @@
-package rpc
+package service
 
 import (
 	"context"
 	"encoding/json"
-	"github.com/skymazer/user_service/db"
 	"github.com/skymazer/user_service/loggerfx"
 	m "github.com/skymazer/user_service/models"
 	pb "github.com/skymazer/user_service/proto"
+	"github.com/skymazer/user_service/storage"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -23,11 +23,11 @@ type Storage interface {
 
 type handler struct {
 	pb.UnimplementedUsersServer
-	database *db.Database
+	database *storage.Database
 	log      *loggerfx.Logger
 }
 
-func New(database *db.Database, log *loggerfx.Logger) (Handler, error) {
+func New(database *storage.Database, log *loggerfx.Logger) (Handler, error) {
 	var h handler
 	h.database = database
 	h.log = log
@@ -65,7 +65,7 @@ func (h *handler) RemoveUser(ctx context.Context, u *pb.RemoveUserReq) (*emptypb
 
 	if err := h.database.DeleteUser(m.IdType(u.Id)); err != nil {
 		switch err {
-		case db.ErrNoMatch:
+		case storage.ErrNoMatch:
 			return &emptypb.Empty{}, status.Error(codes.NotFound,
 				"User doesn't exist")
 		default:

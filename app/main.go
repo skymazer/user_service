@@ -5,11 +5,11 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/skymazer/user_service/broker"
 	"github.com/skymazer/user_service/cache"
-	"github.com/skymazer/user_service/db"
 	"github.com/skymazer/user_service/loggerfx"
 	"github.com/skymazer/user_service/middleware"
 	pb "github.com/skymazer/user_service/proto"
-	rpcServer "github.com/skymazer/user_service/rpc"
+	"github.com/skymazer/user_service/service"
+	"github.com/skymazer/user_service/storage"
 	"google.golang.org/grpc"
 	"net"
 	"os"
@@ -42,7 +42,7 @@ func main() {
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_DB")
-	database, err := db.New(dbUser, dbPassword, dbName)
+	database, err := storage.New(dbUser, dbPassword, dbName)
 	if err != nil {
 		logger.Fatalf("failed to establish db connection: %v", err)
 	}
@@ -53,12 +53,14 @@ func main() {
 			middleware.LoggerInterceptor(logger))),
 	}
 	grpcServer := grpc.NewServer(opts...)
-	rpcServer, err := rpcServer.New(&database, logger)
+	rpcServer, err := service.New(&database, logger)
 	if err != nil {
 		logger.Fatalf("failed to start rcp server: %v", err)
 	}
 	pb.RegisterUsersServer(grpcServer, rpcServer)
 	go grpcServer.Serve(lis)
+
+	logger.Info("Service started")
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)

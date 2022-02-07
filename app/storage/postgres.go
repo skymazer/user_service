@@ -1,10 +1,8 @@
-package db
+package storage
 
 import (
 	"database/sql"
 	"fmt"
-	"log"
-
 	_ "github.com/lib/pq"
 )
 
@@ -33,6 +31,5 @@ func New(username, password, database string) (Database, error) {
 	if err != nil {
 		return db, err
 	}
-	log.Println("Database connection established")
 	return db, nil
 }

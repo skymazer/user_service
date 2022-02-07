@@ -24,8 +24,9 @@ RUN cd /app/proto && \
 RUN cd /app && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
 
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates bash
 WORKDIR /root/
 COPY --from=0 /app/app ./
-RUN chmod +x ./app
-ENTRYPOINT ./app
+COPY ./ops/wait-for-it.sh ./wait-for-it.sh
+RUN chmod +x ./wait-for-it.sh
+ENTRYPOINT ./wait-for-it.sh -t 30 db:5432 -- ./app

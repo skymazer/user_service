@@ -1,4 +1,4 @@
-package db
+package storage
 
 import (
 	"github.com/skymazer/user_service/models"

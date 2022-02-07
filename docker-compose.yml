@@ -57,8 +57,6 @@ services:
   clickhouse:
     image: yandex/clickhouse-server
     volumes:
-      - ./ops/clickhouse_config.xml:/etc/clickhouse-server/config.xml
-      - ./ops/zookeeper-servers.xml:/etc/clickhouse-server/conf.d/zookeeper-servers.xml
       - ./ops/clickhouse_schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - ./data/clickhouse:/var/lib/clickhouse
     depends_on:
