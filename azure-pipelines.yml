@@ -20,13 +20,6 @@ stages:
     pool:
       vmImage: ubuntu-latest
     steps:
-    - task: Docker@2
-      displayName: Build an image
-      inputs:
-        command: build
-        dockerfile: 'ops/app.Dockerfile'
-        tags: |
-          $(tag)
     - task: h2security-scan@0
       inputs:
         secret: 'testtest'
